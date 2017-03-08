@@ -89,6 +89,7 @@ def dir_wildcard_workaround(pattern):
 def build(context, tag):
     stream = DOCKER.api.build(custom_context=True, fileobj=context, tag=tag, stream=True, decode=True)
     for log_line in stream:
+        print("RAW LOG_LINE", repr(log_line))
         if log_line:
             print(log_line.get('stream'), end="")
 
