@@ -18,6 +18,12 @@ from hashlib import sha1
 DOCKER = DockerClient()
 
 
+class BuildingException(Exception):
+
+    def __init__(self, error):
+        self.error = error
+
+
 def prepare_string_for_tar(name, content):
     dfinfo = tarfile.TarInfo(name)
     bytesio = BytesIO(content.encode('utf-8'))
@@ -87,9 +93,15 @@ def dir_wildcard_workaround(pattern):
 
 
 def build(context, tag):
-    stream = DOCKER.api.build(custom_context=True, fileobj=context, tag=tag, stream=True, decode=True)
+    stream = DOCKER.api.build(custom_context=True, fileobj=context, tag=tag,
+                              stream=True, decode=True)
     for log_line in stream:
-        print("RAW LOG_LINE", repr(log_line))
+
+        # Check for errors
+        if log_line.get('error', None):
+            raise BuildingException(log_line)
+
+        # Save the log line in case next one is an error
         if log_line:
             print(log_line.get('stream'), end="")
 
@@ -120,9 +132,14 @@ def build_all_combinations(matrix, template, base_path, options):
         context = docker_context(dockerfile, base_path, options)
 
         image_name = get_image_name(combination, matrix)
-        msg = "Building image {} for combination {}"
-        print(msg.format(image_name, combination))
-        build(context, image_name)
+
+        try:
+            build(context, image_name)
+        except BuildingException as e:
+            err_msg = "Failing to build image {} for combination {} because of error {}"
+            print(err_msg.format(image_name, combination, e.error))
+        else:
+            print("Image {} successfully built for combination {}".format(image_name, combination))
 
 
 def main():
