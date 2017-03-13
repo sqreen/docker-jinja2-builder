@@ -112,7 +112,16 @@ def get_image_name(combination, matrix):
     return matrix['image_name'].format(ID=image_id)
 
 
-def get_all_combinations(matrix):
+def is_blacklisted(combination, blacklist):
+    combination_as_set = set(combination.items())
+    for blacklisted_combination in blacklist:
+        blacklisted_combination_as_set = set(blacklisted_combination.items())
+        if blacklisted_combination_as_set.issubset(combination_as_set):
+            return True
+    return False
+
+
+def get_all_combinations(matrix, blacklist):
     """
     >>> list(get_all_combinations(dict(number=[1,2], character='ab')))
     [{'character': 'a', 'number': 1},
@@ -120,12 +129,22 @@ def get_all_combinations(matrix):
      {'character': 'b', 'number': 1},
      {'character': 'b', 'number': 2}]
     """
-    return (dict(zip(matrix, x)) for x in itertools.product(*matrix.values()))
+    result = []
+
+    for combination in itertools.product(*matrix.values()):
+        combination = dict(zip(matrix, combination))
+
+        if is_blacklisted(combination, blacklist):
+            print("Combination {} is blacklisted, ignore it".format(combination))
+            continue
+
+        result.append(combination)
+    return result
 
 
 def build_all_combinations(matrix, template, base_path, options):
     template = Template(template)
-    combinations = list(get_all_combinations(matrix['matrix']))
+    combinations = list(get_all_combinations(matrix['matrix'], matrix.get('blacklist')))
 
     for combination in combinations:
         dockerfile = template.render(options=options, **combination)
