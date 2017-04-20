@@ -163,7 +163,7 @@ def build_all_combinations(matrix, template, base_path, options):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='sum the integers at the command line',
+        description='Build multiple docker images with Jinja2',
         add_help=False)
     parser.add_argument(
         'base_path',
